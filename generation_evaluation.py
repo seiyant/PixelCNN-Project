@@ -21,8 +21,9 @@ import argparse
 # This is a demonstration of how to call the sample function, feel free to modify it
 # You should modify this sample function to get the generated images from your model
 # You should save the generated images to the gen_data_dir, which is fixed as 'samples'
-sample_op = lambda x : sample_from_discretized_mix_logistic(x, 5)
+sample_op = lambda x : sample_from_discretized_mix_logistic(x, 10) #nr_mix=10 is more accurate but less computationally efficient
 def my_sample(model, gen_data_dir, sample_batch_size = 25, obs = (3,32,32), sample_op = sample_op):
+    device = next(model.parameters()).device #get device from model (next is for-loop-esque iterator)
     for label in my_bidict:
         print(f"Label: {label}")
         #generate images for each label, each label has 25 images
