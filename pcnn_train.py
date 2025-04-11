@@ -27,8 +27,7 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         num_correct = 0
         num_total = 0
     
-    for batch_idx, item in enumerate(tqdm(data_loader)):
-        model_input, categories = item #add categories
+    for batch_idx, (model_input, categories) in enumerate(tqdm(data_loader)): #add categories
         model_input = model_input.to(device)
 
         label_int = [my_bidict[category] for category in categories]
@@ -236,14 +235,14 @@ if __name__ == '__main__':
         
         # decrease learning rate
         scheduler.step()
-        train_or_test(model = model,
-                      data_loader = test_loader,
-                      optimizer = optimizer,
-                      loss_op = loss_op,
-                      device = device,
-                      args = args,
-                      epoch = epoch,
-                      mode = 'test')
+        # train_or_test(model = model,
+        #               data_loader = test_loader,
+        #               optimizer = optimizer,
+        #               loss_op = loss_op,
+        #               device = device,
+        #               args = args,
+        #               epoch = epoch,
+        #               mode = 'test')
         
         train_or_test(model = model,
                       data_loader = val_loader,
