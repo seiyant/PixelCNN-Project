@@ -201,7 +201,7 @@ if __name__ == '__main__':
         if epoch % args.sampling_interval == 0:
             print('......sampling......')
             for label in my_bidict.keys():
-                label_tensor = torch.full((args.sample_batch_size,), label, dtype=torch.long, device=device) #create current label tensor
+                label_tensor = torch.full((args.sample_batch_size,), my_bidict[label], dtype=torch.long, device=device) #create current label tensor
                 sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, label_tensor)
                 sample_t = rescaling_inv(sample_t)
                 save_images(sample_t, args.sample_dir)
