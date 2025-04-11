@@ -186,9 +186,9 @@ def sample(model, sample_batch_size, obs, sample_op, labels = None):
             for j in range(obs[2]):
                 data_v = data
                 if labels is not None:
-                    out   = model(data_v, sample=True, labels = labels)
+                    out   = model(data_v, sample=True, class_labels=labels)
                 else:
-                    out = model(data, sample=True)
+                    out = model(data, sample=True, class_labels=labels)
                 out_sample = sample_op(out)
                 data[:, :, i, j] = out_sample.data[:, :, i, j]
     return data

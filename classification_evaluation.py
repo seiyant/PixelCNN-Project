@@ -29,11 +29,11 @@ def get_label(model, model_input, device):
     class_losses = []
     for current_class in range(NUM_CLASSES):
         label_tensor = torch.full((batch_size,), current_class, dtype=torch.long, device=device) #make tensor size (batch_size,) with current_class
-        out = model(model_input, label_tensor) #model output for entire batch conditioned on current_class
+        out = model(model_input, sample=False, class_label=label_tensor) #model output for entire batch conditioned on current_class
         loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False)
         class_losses.append(loss_per_sample) #collect each class, size (batch_size,)
     class_losses = torch.stack(class_losses).to(device) #size to (NUM_CLASSES, batch_size)
-    class_index = torch.argmin(class_losses) #find class index (0 -> NUM_CLASSES-1) with minimum loss across each sample, size (batch_size,)
+    class_index = torch.argmin(class_losses, dim=0) #find class index (0 -> NUM_CLASSES-1) with minimum loss across each sample, size (batch_size,)
     return class_index
 # End of your code
 

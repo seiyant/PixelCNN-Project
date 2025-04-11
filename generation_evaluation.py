@@ -55,7 +55,7 @@ if __name__ == "__main__":
     #nr_resnet: lower is faster and less expensive
     #nr_filters: determines the capacity of network
     model = model.to(device) #no need for map_location
-    model.load_state_dict.load(torch.load("models/conditional_pixelcnn.pth"))
+    model.load_state_dict(torch.load("models/conditional_pixelcnn.pth"))
     model = model.eval()
     #End of your code
     
