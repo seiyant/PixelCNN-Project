@@ -244,4 +244,9 @@ if __name__ == '__main__':
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
                 os.makedirs("models")
+            checkpoint = {
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }
             torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
+            wandb.save('models/{}_{}.pth'.format(model_name, epoch))
