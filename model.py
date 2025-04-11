@@ -52,7 +52,7 @@ class PixelCNNLayer_down(nn.Module):
 
 class PixelCNN(nn.Module):
     def __init__(self, nr_resnet=5, nr_filters=80, nr_logistic_mix=10,
-                    resnet_nonlinearity='concat_elu', input_channels=3):
+                    resnet_nonlinearity='concat_elu', input_channels=3, num_classes=4, embedding_dim=32):
         super(PixelCNN, self).__init__()
         if resnet_nonlinearity == 'concat_elu' :
             self.resnet_nonlinearity = lambda x : concat_elu(x)
@@ -83,21 +83,32 @@ class PixelCNN(nn.Module):
 
         self.upsize_ul_stream = nn.ModuleList([down_right_shifted_deconv2d(nr_filters,
                                                     nr_filters, stride=(2,2)) for _ in range(2)])
+        
+        self.embedding = nn.Embedding(num_classes, embedding_dim) #embed class labels into 32x vector
+        in_channels = input_channels + 1 + embedding_dim #adding embedding channels
 
-        self.u_init = down_shifted_conv2d(input_channels + 1, nr_filters, filter_size=(2,3),
-                        shift_output_down=True)
+        self.u_init = down_shifted_conv2d(in_channels, nr_filters, filter_size=(2,3),
+                        shift_output_down=True) #input in_channels
 
-        self.ul_init = nn.ModuleList([down_shifted_conv2d(input_channels + 1, nr_filters,
+        self.ul_init = nn.ModuleList([down_shifted_conv2d(in_channels, nr_filters,
                                             filter_size=(1,3), shift_output_down=True),
-                                       down_right_shifted_conv2d(input_channels + 1, nr_filters,
-                                            filter_size=(2,1), shift_output_right=True)])
+                                       down_right_shifted_conv2d(in_channels, nr_filters,
+                                            filter_size=(2,1), shift_output_right=True)]) #input in_channels
 
         num_mix = 3 if self.input_channels == 1 else 10
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
         self.init_padding = None
 
 
-    def forward(self, x, sample=False):
+    def forward(self, x, sample=False, class_label=None):
+        if class_label is not None: #embed and fuse model
+            _, _, H, W = x.shape
+            embedding = self.embedding(class_label) #size (B,embedding_dim)
+            embedding = embedding.unsqueeze(-1) #size (B,embedding_dim,1)
+            embedding = embedding.unsqueeze(-1) #size (B,embedding_dim,1,1)
+            embedding = embedding.expand(-1, -1, H, W) #size (B,embedding_dim,H,W)
+            x = torch.cat((x, embedding), dim=1) #size (B,3+embedding_dim,H,W)
+
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -111,7 +122,7 @@ class PixelCNN(nn.Module):
             x = torch.cat((x, padding), 1)
 
         ###      UP PASS    ###
-        x = x if sample else torch.cat((x, self.init_padding), 1)
+        x = x if sample else torch.cat((x, self.init_padding), 1) 
         u_list  = [self.u_init(x)]
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
         for i in range(3):
