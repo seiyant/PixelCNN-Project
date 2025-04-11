@@ -73,49 +73,30 @@ def get_label(model, model_input):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('-w', '--en_wandb', type=bool, default=False,
-                            help='Enable wandb logging')
-    parser.add_argument('-t', '--tag', type=str, default='default',
-                            help='Tag for this run')
+    parser.add_argument('-w', '--en_wandb', type=bool, default=False, help='Enable wandb logging')
+    parser.add_argument('-t', '--tag', type=str, default='default', help='Tag for this run')
     
     # sampling
-    parser.add_argument('-c', '--sampling_interval', type=int, default=5,
-                        help='sampling interval')
+    parser.add_argument('-c', '--sampling_interval', type=int, default=5, help='sampling interval')
     # data I/O
-    parser.add_argument('-i', '--data_dir', type=str,
-                        default='data', help='Location for the dataset')
-    parser.add_argument('-o', '--save_dir', type=str, default='models',
-                        help='Location for parameter checkpoints and samples')
-    parser.add_argument('-sd', '--sample_dir',  type=str, default='samples',
-                        help='Location for saving samples')
-    parser.add_argument('-d', '--dataset', type=str,
-                        default='cpen455', help='Can be either cifar|mnist|cpen455')
-    parser.add_argument('-st', '--save_interval', type=int, default=10,
-                        help='Every how many epochs to write checkpoint/samples?')
-    parser.add_argument('-r', '--load_params', type=str, default=None,
-                        help='Restore training from previous model checkpoint?')
-    parser.add_argument('--obs', type=tuple, default=(3, 32, 32),
-                        help='Observation shape')
+    parser.add_argument('-i', '--data_dir', type=str, default='data', help='Location for the dataset')
+    parser.add_argument('-o', '--save_dir', type=str, default='models', help='Location for parameter checkpoints and samples')
+    parser.add_argument('-sd', '--sample_dir',  type=str, default='samples', help='Location for saving samples')
+    parser.add_argument('-d', '--dataset', type=str, default='cpen455', help='Can be either cifar|mnist|cpen455')
+    parser.add_argument('-st', '--save_interval', type=int, default=10, help='Every how many epochs to write checkpoint/samples?')
+    parser.add_argument('-r', '--load_params', type=str, default=None, help='Restore training from previous model checkpoint?')
+    parser.add_argument('--obs', type=tuple, default=(3, 32, 32), help='Observation shape')
     
     # model
-    parser.add_argument('-q', '--nr_resnet', type=int, default=1,
-                        help='Number of residual blocks per stage of the model')
-    parser.add_argument('-n', '--nr_filters', type=int, default=40,
-                        help='Number of filters to use across the model. Higher = larger model.')
-    parser.add_argument('-m', '--nr_logistic_mix', type=int, default=5,
-                        help='Number of logistic components in the mixture. Higher = more flexible model')
-    parser.add_argument('-l', '--lr', type=float,
-                        default=0.0002, help='Base learning rate')
-    parser.add_argument('-e', '--lr_decay', type=float, default=0.999995,
-                        help='Learning rate decay, applied every step of the optimization')
-    parser.add_argument('-b', '--batch_size', type=int, default=64,
-                        help='Batch size during training per GPU')
-    parser.add_argument('-sb', '--sample_batch_size', type=int, default=32,
-                        help='Batch size during sampling per GPU')
-    parser.add_argument('-x', '--max_epochs', type=int,
-                        default=5000, help='How many epochs to run in total?')
-    parser.add_argument('-s', '--seed', type=int, default=1,
-                        help='Random seed to use')
+    parser.add_argument('-q', '--nr_resnet', type=int, default=1, help='Number of residual blocks per stage of the model')
+    parser.add_argument('-n', '--nr_filters', type=int, default=40, help='Number of filters to use across the model. Higher = larger model.')
+    parser.add_argument('-m', '--nr_logistic_mix', type=int, default=5, help='Number of logistic components in the mixture. Higher = more flexible model')
+    parser.add_argument('-l', '--lr', type=float, default=0.0002, help='Base learning rate')
+    parser.add_argument('-e', '--lr_decay', type=float, default=0.999995, help='Learning rate decay, applied every step of the optimization')
+    parser.add_argument('-b', '--batch_size', type=int, default=64, help='Batch size during training per GPU')
+    parser.add_argument('-sb', '--sample_batch_size', type=int, default=32, help='Batch size during sampling per GPU')
+    parser.add_argument('-x', '--max_epochs', type=int, default=5000, help='How many epochs to run in total?')
+    parser.add_argument('-s', '--seed', type=int, default=1, help='Random seed to use')
     
     args = parser.parse_args()
     pprint(args.__dict__)
@@ -159,50 +140,28 @@ if __name__ == '__main__':
     # set data
     if "mnist" in args.dataset:
         ds_transforms = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor(), rescaling, replicate_color_channel])
-        train_loader = torch.utils.data.DataLoader(datasets.MNIST(args.data_dir, download=True, 
-                            train=True, transform=ds_transforms), batch_size=args.batch_size, 
-                                shuffle=True, **kwargs)
+        train_loader = torch.utils.data.DataLoader(datasets.MNIST(args.data_dir, download=True, train=True, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
         
-        test_loader  = torch.utils.data.DataLoader(datasets.MNIST(args.data_dir, train=False, 
-                        transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+        test_loader  = torch.utils.data.DataLoader(datasets.MNIST(args.data_dir, train=False, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
     
     elif "cifar" in args.dataset:
         ds_transforms = transforms.Compose([transforms.ToTensor(), rescaling])
         if args.dataset == "cifar10":
-            train_loader = torch.utils.data.DataLoader(datasets.CIFAR10(args.data_dir, train=True, 
-                download=True, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+            train_loader = torch.utils.data.DataLoader(datasets.CIFAR10(args.data_dir, train=True, download=True, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
             
-            test_loader  = torch.utils.data.DataLoader(datasets.CIFAR10(args.data_dir, train=False, 
-                        transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+            test_loader  = torch.utils.data.DataLoader(datasets.CIFAR10(args.data_dir, train=False, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
         elif args.dataset == "cifar100":
-            train_loader = torch.utils.data.DataLoader(datasets.CIFAR100(args.data_dir, train=True, 
-                download=True, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+            train_loader = torch.utils.data.DataLoader(datasets.CIFAR100(args.data_dir, train=True, download=True, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
             
-            test_loader  = torch.utils.data.DataLoader(datasets.CIFAR100(args.data_dir, train=False, 
-                        transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+            test_loader  = torch.utils.data.DataLoader(datasets.CIFAR100(args.data_dir, train=False, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
         else:
             raise Exception('{} dataset not in {cifar10, cifar100}'.format(args.dataset))
     
     elif "cpen455" in args.dataset:
         ds_transforms = transforms.Compose([transforms.Resize((32, 32)), rescaling])
-        train_loader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-                                                                  mode = 'train', 
-                                                                  transform=ds_transforms), 
-                                                   batch_size=args.batch_size, 
-                                                   shuffle=True, 
-                                                   **kwargs)
-        test_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-                                                                  mode = 'test', 
-                                                                  transform=ds_transforms), 
-                                                   batch_size=args.batch_size, 
-                                                   shuffle=True, 
-                                                   **kwargs)
-        val_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-                                                                  mode = 'validation', 
-                                                                  transform=ds_transforms), 
-                                                   batch_size=args.batch_size, 
-                                                   shuffle=True, 
-                                                   **kwargs)
+        train_loader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, mode = 'train', transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+        test_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, mode = 'test', transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
+        val_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, mode = 'validation', transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
     else:
         raise Exception('{} dataset not in {mnist, cifar, cpen455}'.format(args.dataset))
     
@@ -224,14 +183,7 @@ if __name__ == '__main__':
     scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=args.lr_decay)
     
     for epoch in tqdm(range(args.max_epochs)):
-        train_or_test(model = model, 
-                      data_loader = train_loader, 
-                      optimizer = optimizer, 
-                      loss_op = loss_op, 
-                      device = device, 
-                      args = args, 
-                      epoch = epoch, 
-                      mode = 'training')
+        train_or_test(model = model, data_loader = train_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'training')
         
         # decrease learning rate
         scheduler.step()
@@ -244,14 +196,7 @@ if __name__ == '__main__':
         #               epoch = epoch,
         #               mode = 'test')
         
-        train_or_test(model = model,
-                      data_loader = val_loader,
-                      optimizer = optimizer,
-                      loss_op = loss_op,
-                      device = device,
-                      args = args,
-                      epoch = epoch,
-                      mode = 'val')
+        train_or_test(model = model, data_loader = val_loader,optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
         
         if epoch % args.sampling_interval == 0:
             print('......sampling......')

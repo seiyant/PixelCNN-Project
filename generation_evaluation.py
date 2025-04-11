@@ -36,8 +36,7 @@ def my_sample(model, gen_data_dir, sample_batch_size = 25, obs = (3,32,32), samp
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--ref_data_dir', type=str,
-                        default="data/test", help='Location for the dataset')
+    parser.add_argument('-r', '--ref_data_dir', type=str, default="data/test", help='Location for the dataset')
     
     args = parser.parse_args()
     
@@ -62,8 +61,7 @@ if __name__ == "__main__":
     my_sample(model=model, gen_data_dir=gen_data_dir)
     
     paths = [gen_data_dir, ref_data_dir]
-    print("#generated images: {:d}, #reference images: {:d}".format(
-        len(os.listdir(gen_data_dir)), len(os.listdir(ref_data_dir))))
+    print("#generated images: {:d}, #reference images: {:d}".format(len(os.listdir(gen_data_dir)), len(os.listdir(ref_data_dir))))
 
     try:
         fid_score = calculate_fid_given_paths(paths, BATCH_SIZE, device, dims=192)

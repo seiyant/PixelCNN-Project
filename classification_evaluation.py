@@ -55,12 +55,9 @@ def classifier(model, data_loader, device):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('-i', '--data_dir', type=str,
-                        default='data', help='Location for the dataset')
-    parser.add_argument('-b', '--batch_size', type=int,
-                        default=32, help='Batch size for inference')
-    parser.add_argument('-m', '--mode', type=str,
-                        default='validation', help='Mode for the dataset')
+    parser.add_argument('-i', '--data_dir', type=str, default='data', help='Location for the dataset')
+    parser.add_argument('-b', '--batch_size', type=int, default=32, help='Batch size for inference')
+    parser.add_argument('-m', '--mode', type=str, default='validation', help='Mode for the dataset')
     
     args = parser.parse_args()
     pprint(args.__dict__)
@@ -68,12 +65,7 @@ if __name__ == '__main__':
     kwargs = {'num_workers':0, 'pin_memory':True, 'drop_last':False}
 
     ds_transforms = transforms.Compose([transforms.Resize((32, 32)), rescaling])
-    dataloader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-                                                            mode = args.mode, 
-                                                            transform=ds_transforms), 
-                                             batch_size=args.batch_size, 
-                                             shuffle=True, 
-                                             **kwargs)
+    dataloader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, mode = args.mode, transform=ds_transforms), batch_size=args.batch_size, shuffle=True, **kwargs)
 
     #TODO:Begin of your code
     #You should replace the random classifier with your trained model
@@ -93,5 +85,3 @@ if __name__ == '__main__':
     
     acc = classifier(model = model, data_loader = dataloader, device = device)
     print(f"Accuracy: {acc}")
-        
-        

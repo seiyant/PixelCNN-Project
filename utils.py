@@ -54,11 +54,9 @@ def discretized_mix_logistic_loss(x, l, reduce):
     # sub-pixels
     x = x.contiguous()
     x = x.unsqueeze(-1) + Variable(torch.zeros(xs + [nr_mix]).to(x.device), requires_grad=False)
-    m2 = (means[:, :, :, 1, :] + coeffs[:, :, :, 0, :]
-                * x[:, :, :, 0, :]).view(xs[0], xs[1], xs[2], 1, nr_mix)
+    m2 = (means[:, :, :, 1, :] + coeffs[:, :, :, 0, :] * x[:, :, :, 0, :]).view(xs[0], xs[1], xs[2], 1, nr_mix)
 
-    m3 = (means[:, :, :, 2, :] + coeffs[:, :, :, 1, :] * x[:, :, :, 0, :] +
-                coeffs[:, :, :, 2, :] * x[:, :, :, 1, :]).view(xs[0], xs[1], xs[2], 1, nr_mix)
+    m3 = (means[:, :, :, 2, :] + coeffs[:, :, :, 1, :] * x[:, :, :, 0, :] + coeffs[:, :, :, 2, :] * x[:, :, :, 1, :]).view(xs[0], xs[1], xs[2], 1, nr_mix)
 
     means = torch.cat((means[:, :, :, 0, :].unsqueeze(3), m2, m3), dim=3)
     centered_x = x - means
@@ -132,10 +130,8 @@ def sample_from_discretized_mix_logistic(l, nr_mix):
     sel = one_hot.view(xs[:-1] + [1, nr_mix])
     # select logistic parameters
     means = torch.sum(l[:, :, :, :, :nr_mix] * sel, dim=4)
-    log_scales = torch.clamp(torch.sum(
-        l[:, :, :, :, nr_mix:2 * nr_mix] * sel, dim=4), min=-7.)
-    coeffs = torch.sum(F.tanh(
-        l[:, :, :, :, 2 * nr_mix:3 * nr_mix]) * sel, dim=4)
+    log_scales = torch.clamp(torch.sum(l[:, :, :, :, nr_mix:2 * nr_mix] * sel, dim=4), min=-7.)
+    coeffs = torch.sum(F.tanh(l[:, :, :, :, 2 * nr_mix:3 * nr_mix]) * sel, dim=4)
     # sample from logistic & clip to interval
     # we don't actually round to the nearest 8bit value when sampling
     u = torch.FloatTensor(means.size())
@@ -144,10 +140,8 @@ def sample_from_discretized_mix_logistic(l, nr_mix):
     u = Variable(u)
     x = means + torch.exp(log_scales) * (torch.log(u) - torch.log(1. - u))
     x0 = torch.clamp(torch.clamp(x[:, :, :, 0], min=-1.), max=1.)
-    x1 = torch.clamp(torch.clamp(
-       x[:, :, :, 1] + coeffs[:, :, :, 0] * x0, min=-1.), max=1.)
-    x2 = torch.clamp(torch.clamp(
-       x[:, :, :, 2] + coeffs[:, :, :, 1] * x0 + coeffs[:, :, :, 2] * x1, min=-1.), max=1.)
+    x1 = torch.clamp(torch.clamp(x[:, :, :, 1] + coeffs[:, :, :, 0] * x0, min=-1.), max=1.)
+    x2 = torch.clamp(torch.clamp(x[:, :, :, 2] + coeffs[:, :, :, 1] * x0 + coeffs[:, :, :, 2] * x1, min=-1.), max=1.)
 
     out = torch.cat([x0.view(xs[:-1] + [1]), x1.view(xs[:-1] + [1]), x2.view(xs[:-1] + [1])], dim=3)
     # put back in Pytorch ordering
