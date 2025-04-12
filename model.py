@@ -89,12 +89,8 @@ class PixelCNN(nn.Module):
     def forward(self, x, sample=False, class_label=None):
         embedding = None
         if class_label is not None: #embed and fuse model
-            embedding = self.embedding(class_label)
-            _, _, H, W = x.shape
-            embedding = self.embedding(class_label) #size (B,embedding_dim)
-            embedding = embedding.unsqueeze(-1) #size (B,embedding_dim,1)
-            embedding = embedding.unsqueeze(-1) #size (B,embedding_dim,1,1)
-            embedding = embedding.expand(-1, -1, H, W) #size (B,embedding_dim,H,W)
+            raw_embedding = self.embedding(class_label)
+            embedding = raw_embedding.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, x.size(2), x.size(3)) #size (B,embedding_dim,H,W)
             x = torch.cat((x, embedding), dim=1) #size (B,3+embedding_dim,H,W)
 
         #similar as done in the tf repo :
@@ -115,7 +111,7 @@ class PixelCNN(nn.Module):
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
         for i in range(3):
             # resnet block
-            u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1], embedding=embedding)
+            u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1], embedding=raw_embedding)
             u_list  += u_out
             ul_list += ul_out
 
