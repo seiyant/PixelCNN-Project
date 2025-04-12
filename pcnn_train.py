@@ -135,8 +135,7 @@ def main(args):
             print('......sampling......')
             # Generate samples for each class
             for label in my_bidict.keys():
-                label_tensor = torch.full((args.sample_batch_size,), my_bidict[label],
-                                            dtype=torch.long, device=device)
+                label_tensor = torch.full((args.sample_batch_size,), my_bidict[label], dtype=torch.long, device=device)
                 sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, label_tensor)
                 sample_t = rescaling_inv(sample_t)
                 save_images(sample_t, args.sample_dir, label=label)
@@ -160,36 +159,36 @@ def main(args):
             wandb.save(f'models/{model_name}_{epoch}.pth')
 
 if __name__ == '__main__':
+    import argparse
+    from pprint import pprint
+
     parser = argparse.ArgumentParser()
-    
+
+    # Add all your args here
     parser.add_argument('-w', '--en_wandb', type=bool, default=False, help='Enable wandb logging')
     parser.add_argument('-t', '--tag', type=str, default='default', help='Tag for this run')
-    
-    # sampling
-    parser.add_argument('-c', '--sampling_interval', type=int, default=5, help='sampling interval')
-    # data I/O
-    parser.add_argument('-i', '--data_dir', type=str, default='data', help='Location for the dataset')
-    parser.add_argument('-o', '--save_dir', type=str, default='models', help='Location for parameter checkpoints and samples')
-    parser.add_argument('-sd', '--sample_dir', type=str, default='samples', help='Location for saving samples')
-    parser.add_argument('-d', '--dataset', type=str, default='cpen455', help='Dataset (cifar|mnist|cpen455)')
-    parser.add_argument('-st', '--save_interval', type=int, default=10, help='Checkpoint interval (epochs)')
-    parser.add_argument('-r', '--load_params', type=str, default=None, help='Model checkpoint path')
-    parser.add_argument('--obs', type=tuple, default=(3, 32, 32), help='Observation shape')
-    
-    # model parameters
-    parser.add_argument('-q', '--nr_resnet', type=int, default=1, help='Number of residual blocks per stage')
-    parser.add_argument('-n', '--nr_filters', type=int, default=40, help='Number of filters (channels)')
-    parser.add_argument('-m', '--nr_logistic_mix', type=int, default=5, help='Number of logistic mixtures')
-    parser.add_argument('-l', '--lr', type=float, default=0.0002, help='Base learning rate')
-    parser.add_argument('-e', '--lr_decay', type=float, default=0.999995, help='Learning rate decay')
-    parser.add_argument('-b', '--batch_size', type=int, default=64, help='Batch size for training')
-    parser.add_argument('-sb', '--sample_batch_size', type=int, default=32, help='Batch size for sampling')
-    parser.add_argument('-x', '--max_epochs', type=int, default=5000, help='Total epochs to run')
-    parser.add_argument('-s', '--seed', type=int, default=1, help='Random seed')
-    
+
+    parser.add_argument('-c', '--sampling_interval', type=int, default=5)
+    parser.add_argument('-i', '--data_dir', type=str, default='data')
+    parser.add_argument('-o', '--save_dir', type=str, default='models')
+    parser.add_argument('-sd', '--sample_dir',  type=str, default='samples')
+    parser.add_argument('-d', '--dataset', type=str, default='cpen455')
+    parser.add_argument('-st', '--save_interval', type=int, default=10)
+    parser.add_argument('-r', '--load_params', type=str, default=None)
+    parser.add_argument('--obs', type=tuple, default=(3, 32, 32))
+
+    parser.add_argument('-q', '--nr_resnet', type=int, default=1)
+    parser.add_argument('-n', '--nr_filters', type=int, default=40)
+    parser.add_argument('-m', '--nr_logistic_mix', type=int, default=5)
+    parser.add_argument('-l', '--lr', type=float, default=0.0002)
+    parser.add_argument('-e', '--lr_decay', type=float, default=0.999995)
+    parser.add_argument('-b', '--batch_size', type=int, default=64)
+    parser.add_argument('-sb', '--sample_batch_size', type=int, default=32)
+    parser.add_argument('-x', '--max_epochs', type=int, default=5000)
+    parser.add_argument('-s', '--seed', type=int, default=1)
+
     args = parser.parse_args()
     pprint(args.__dict__)
-    check_dir_and_create(args.save_dir)
-    
-    # Now call main() with the parsed args.
+
+    # Call main with the parsed args
     main(args)
