@@ -12,12 +12,12 @@ class PixelCNNLayer_up(nn.Module):
         # stream from pixels above and to thes left
         self.ul_stream = nn.ModuleList([gated_resnet(nr_filters, down_right_shifted_conv2d, resnet_nonlinearity, skip_connection=1) for _ in range(nr_resnet)])
 
-    def forward(self, u, ul):
+    def forward(self, u, ul, embedding=None):
         u_list, ul_list = [], []
 
         for i in range(self.nr_resnet):
-            u  = self.u_stream[i](u)
-            ul = self.ul_stream[i](ul, a=u)
+            u  = self.u_stream[i](u, embedding=embedding)
+            ul = self.ul_stream[i](ul, a=u, embedding=embedding)
             u_list  += [u]
             ul_list += [ul]
 
@@ -34,11 +34,16 @@ class PixelCNNLayer_down(nn.Module):
         # stream from pixels above and to thes left
         self.ul_stream = nn.ModuleList([gated_resnet(nr_filters, down_right_shifted_conv2d, resnet_nonlinearity, skip_connection=2) for _ in range(nr_resnet)])
 
-    def forward(self, u, ul, u_list, ul_list):
+    def forward(self, u, ul, u_list, ul_list, embedding=None):
         for i in range(self.nr_resnet):
-            u  = self.u_stream[i](u, a=u_list.pop())
-            ul = self.ul_stream[i](ul, a=torch.cat((u, ul_list.pop()), 1))
-
+            skip_u = u_list.pop() if len(u_list) > 0 else None #use previous skip connection
+            skip_ul = ul_list.pop() if len(ul_list) > 0 else None
+            u  = self.u_stream[i](u, a=skip_u, embedding=embedding)
+            if skip_ul is not None: #if skip, concatenate with u before ul stream
+                ul_in = torch.cat((u, skip_ul), 1)
+            else:
+                ul_in = u
+            ul = self.ul_stream[i](ul, a=ul_in, embedding=embedding)
         return u, ul
 
 
@@ -82,7 +87,9 @@ class PixelCNN(nn.Module):
 
 
     def forward(self, x, sample=False, class_label=None):
+        embedding = None
         if class_label is not None: #embed and fuse model
+            embedding = self.embedding(class_label)
             _, _, H, W = x.shape
             embedding = self.embedding(class_label) #size (B,embedding_dim)
             embedding = embedding.unsqueeze(-1) #size (B,embedding_dim,1)
@@ -90,7 +97,7 @@ class PixelCNN(nn.Module):
             embedding = embedding.expand(-1, -1, H, W) #size (B,embedding_dim,H,W)
             x = torch.cat((x, embedding), dim=1) #size (B,3+embedding_dim,H,W)
 
-        # similar as done in the tf repo :
+        #similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
             padding = Variable(torch.ones(xs[0], 1, xs[2], xs[3]), requires_grad=False)
@@ -108,7 +115,7 @@ class PixelCNN(nn.Module):
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
         for i in range(3):
             # resnet block
-            u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1])
+            u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1], embedding=embedding)
             u_list  += u_out
             ul_list += ul_out
 
@@ -123,7 +130,7 @@ class PixelCNN(nn.Module):
 
         for i in range(3):
             # resnet block
-            u, ul = self.down_layers[i](u, ul, u_list, ul_list)
+            u, ul = self.down_layers[i](u, ul, u_list, ul_list, embedding)
 
             # upscale (only twice)
             if i != 2 :
@@ -149,5 +156,3 @@ class random_classifier(nn.Module):
         torch.save(self.state_dict(), os.path.join(os.path.dirname(__file__), 'models/conditional_pixelcnn.pth'))
     def forward(self, x, device):
         return torch.randint(0, self.NUM_CLASSES, (x.shape[0],)).to(device)
-    
-    

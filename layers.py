@@ -123,14 +123,37 @@ class gated_resnet(nn.Module):
         self.dropout = nn.Dropout2d(0.5)
         self.conv_out = conv_op(2 * num_filters, 2 * num_filters)
 
+        self.dropout = nn.Dropout2d(0.5)
+        self.conv_out = conv_op(2 * num_filters, 2 * num_filters)
+        self.film_enabled = True #add FiLM
+        self.film = FiLM(num_filters, cond_dim=32)
 
-    def forward(self, og_x, a=None):
+    def forward(self, og_x, a=None, embedding=None):
         x = self.conv_input(self.nonlinearity(og_x))
         if a is not None :
             x += self.nin_skip(self.nonlinearity(a))
+        if self.film_enabled and embedding is not None: #FiLM after first convolution
+            x = self.film(x, embedding)
         x = self.nonlinearity(x)
         x = self.dropout(x)
         x = self.conv_out(x)
         a, b = torch.chunk(x, 2, dim=1)
         c3 = a * F.sigmoid(b)
         return og_x + c3
+    
+class FiLM(nn.Module):
+    def __init__(self, feature_dim, cond_dim):
+        super(FiLM, self).__init__()
+        self.film_gen = nn.Linear(cond_dim, 2 * feature_dim) #linear map from label embedding -> (gamma,beta) from each channel
+
+    def forward(self, feature_map, cond_embedding):
+        """
+        feature_map (B,C,H,W)
+        cond_embedding (B, cond_dim)
+        """
+        gamma_beta = self.film_gen(cond_embedding) #size (B,2*C)
+        gamma, beta = gamma_beta.chunk(2, dim=1) #size (B,C)
+        gamma = gamma.unsqueeze(-1).unsqueeze(-1) #size (B,C,1,1)
+        beta = beta.unsqueeze(-1).unsqueeze(-1) #size (B,C,1,1)
+
+        return feature_map * gamma + beta

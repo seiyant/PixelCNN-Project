@@ -181,7 +181,10 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=args.lr_decay)
-    
+
+    best_fid = float('inf')
+    patience, patience_count = 10, 0
+        
     for epoch in tqdm(range(args.max_epochs)):
         train_or_test(model = model, data_loader = train_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'training')
         
@@ -197,7 +200,9 @@ if __name__ == '__main__':
         #               mode = 'test')
         
         train_or_test(model = model, data_loader = val_loader,optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
-        
+
+        #if current_fid < best_fid: best_fid = current_fid, patience=0
+        #else patience++, early stopping
         if epoch % args.sampling_interval == 0:
             print('......sampling......')
             for label in my_bidict.keys():
