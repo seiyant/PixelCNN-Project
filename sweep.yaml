@@ -1,5 +1,5 @@
-program: pcnn_train.py   # <-- important!
 method: bayes
+program: pcnn_train.py   # <-- important!
 metric:
   name: FID
   goal: minimize
