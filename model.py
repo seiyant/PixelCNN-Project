@@ -90,8 +90,9 @@ class PixelCNN(nn.Module):
         embedding = None
         if class_label is not None: #embed and fuse model
             raw_embedding = self.embedding(class_label)
-            embedding = raw_embedding.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, x.size(2), x.size(3)) #size (B,embedding_dim,H,W)
-            x = torch.cat((x, embedding), dim=1) #size (B,3+embedding_dim,H,W)
+            _, _, H, W = x.shape
+            spatial_embedding = raw_embedding.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, H, W) #size (B,embedding_dim,H,W)
+            x = torch.cat((x, spatial_embedding), dim=1) #size (B,3+embedding_dim,H,W)
 
         #similar as done in the tf repo :
         if self.init_padding is not sample:
@@ -126,7 +127,7 @@ class PixelCNN(nn.Module):
 
         for i in range(3):
             # resnet block
-            u, ul = self.down_layers[i](u, ul, u_list, ul_list, embedding)
+            u, ul = self.down_layers[i](u, ul, u_list, ul_list, embedding=raw_embedding)
 
             # upscale (only twice)
             if i != 2 :
