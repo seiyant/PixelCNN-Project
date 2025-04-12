@@ -227,5 +227,6 @@ if __name__ == '__main__':
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
             }
+            torch.save(model.state_dict(), 'models/conditional_pixelcnn.pth')
             torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
             wandb.save('models/{}_{}.pth'.format(model_name, epoch))
