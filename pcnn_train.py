@@ -22,10 +22,6 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         
     deno =  args.batch_size * np.prod(args.obs) * np.log(2.)        
     loss_tracker = mean_tracker()
-
-    if mode != 'training':
-        num_correct = 0
-        num_total = 0
     
     for batch_idx, (model_input, categories) in enumerate(tqdm(data_loader)): #add categories
         model_input = model_input.to(device)
@@ -37,18 +33,13 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         loss = loss_op(model_input, model_output)
         loss_tracker.update(loss.item()/deno)
 
-        if mode != 'training': #in evaluation, compute predicted labels and update accuracy
-            predicted_labels = get_label(model, model_input, device=device)
-            num_correct += (predicted_labels == label_tensor).sum().item()
-            num_total += model_input.size(0)
-
         if mode == 'training':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
         
     if mode != 'training':
-        accuracy = num_correct / num_total
+        accuracy = classifier(model, data_loader, device=device)
         print(f"{mode.capitalize()} Accuracy: {accuracy:.2%}")
         if args.en_wandb:
             wandb.log({mode + "-Accuracy": accuracy})
