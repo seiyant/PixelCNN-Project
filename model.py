@@ -148,7 +148,8 @@ class random_classifier(nn.Module):
         self.fc = nn.Linear(3, NUM_CLASSES)
         print("Random classifier initialized")
         # create a folder
-        os.makedirs(os.path.join(os.path.dirname(__file__), 'models'), exist_ok=True)
+        if os.path.join(os.path.dirname(__file__), 'models') not in os.listdir():
+            os.mkdir(os.path.join(os.path.dirname(__file__), 'models'))
 
         torch.save(self.state_dict(), os.path.join(os.path.dirname(__file__), 'models/conditional_pixelcnn.pth'))
     def forward(self, x, device):
