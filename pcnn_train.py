@@ -12,7 +12,7 @@ from tqdm import tqdm
 from pprint import pprint
 import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths
-
+from classification_evaluation import *
 
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
     if mode == 'training':
@@ -38,7 +38,7 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         loss_tracker.update(loss.item()/deno)
 
         if mode != 'training': #in evaluation, compute predicted labels and update accuracy
-            predicted_labels = get_label(model, model_input)
+            predicted_labels = get_label(model, model_input, device=device)
             num_correct += (predicted_labels == label_tensor).sum().item()
             num_total += model_input.size(0)
 
@@ -56,19 +56,6 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     if args.en_wandb:
         wandb.log({mode + "-Average-BPD" : loss_tracker.get_mean()})
         wandb.log({mode + "-epoch": epoch})
-
-def get_label(model, model_input):
-    model.eval()
-    batch_size = model_input.size(0)
-    class_losses = []
-    for i in range(len(my_bidict)):
-        label_tensor = torch.full((batch_size,), i, dtype=torch.long).to(device) #create tensor with candidate for batch
-        out = model(model_input, class_label=label_tensor) #forward pass with candidate
-        loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False) #loss per sample
-        class_losses.append(loss_per_sample)
-    class_losses = torch.stack(class_losses) #size (NUM_CLASSES, batch_size)
-    predicted_labels = torch.argmin(class_losses, dim=0) #choose the class with smallest loss as prediction per sample
-    return predicted_labels
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

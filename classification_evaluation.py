@@ -33,8 +33,8 @@ def get_label(model, model_input, device):
         loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False)
         class_losses.append(loss_per_sample) #collect each class, size (batch_size,)
     class_losses = torch.stack(class_losses).to(device) #size to (NUM_CLASSES, batch_size)
-    class_index = torch.argmin(class_losses, dim=0) #find class index (0 -> NUM_CLASSES-1) with minimum loss across each sample, size (batch_size,)
-    return class_index
+    predicted_labels = torch.argmin(class_losses, dim=0) #find class index (0 -> NUM_CLASSES-1) with minimum loss across each sample, size (batch_size,)
+    return predicted_labels
 # End of your code
 
 def classifier(model, data_loader, device):
