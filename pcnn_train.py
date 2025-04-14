@@ -204,7 +204,6 @@ if __name__ == '__main__':
     patience, patience_count = 10, 0
         
     for epoch in tqdm(range(args.max_epochs)):
-        torch.cuda.empty_cache()
         train_or_test(model = model, data_loader = train_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'training')
         
         # decrease learning rate
@@ -250,6 +249,7 @@ if __name__ == '__main__':
                             "val-Accuracy": last_val_accuracy,
                             "combined_score": combined_score,
                             "epoch": epoch})
+            torch.cuda.empty_cache()
         
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
