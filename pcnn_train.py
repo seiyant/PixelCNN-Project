@@ -204,6 +204,7 @@ if __name__ == '__main__':
     patience, patience_count = 10, 0
         
     for epoch in tqdm(range(args.max_epochs)):
+        torch.cuda.empty_cache()
         train_or_test(model = model, data_loader = train_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'training')
         
         # decrease learning rate
