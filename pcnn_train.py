@@ -56,59 +56,19 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     if args.en_wandb:
         wandb.log({mode + "-Average-BPD" : loss_tracker.get_mean()})
         wandb.log({mode + "-epoch": epoch})
-    
-    return accuracy
 
 def get_label(model, model_input):
     model.eval()
     batch_size = model_input.size(0)
     class_losses = []
     for i in range(len(my_bidict)):
-        label_tensor = torch.full((batch_size,), i, dtype=torch.long, device=device) #create tensor with candidate for batch
+        label_tensor = torch.full((batch_size,), i, dtype=torch.long).to(device) #create tensor with candidate for batch
         out = model(model_input, class_label=label_tensor) #forward pass with candidate
         loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False) #loss per sample
         class_losses.append(loss_per_sample)
     class_losses = torch.stack(class_losses) #size (NUM_CLASSES, batch_size)
     predicted_labels = torch.argmin(class_losses, dim=0) #choose the class with smallest loss as prediction per sample
     return predicted_labels
-
-def compute_combined_score(fid, accuracy):
-     if fid >= 60:
-         fid_score = 0.0
-     elif fid <= 30:
-         fid_score = 1.0
-     else:
-         fid_score = (60.0 - fid) / 30.0 #based on grading rubric
- 
-     if accuracy <= 0.25:
-         acc_score = 0.0
-     elif accuracy >= 0.75:
-         acc_score = 1.0
-     else:
-         acc_score = (accuracy - 0.25) / 0.50 #based on grading rubric
- 
-     base_score = fid_score + acc_score #sum scores
- 
-     bonus = 0 #add accuracy bonuses
-     if accuracy >= 0.95:
-         bonus += 1.5
-     elif accuracy >= 0.90:
-         bonus += 1.4
-     elif accuracy >= 0.85:
-         bonus += 1.3
-     elif accuracy >= 0.80:
-         bonus += 1.2
- 
-     if fid < 5: #add fid bonuses
-         bonus += 1.5
-     elif fid < 10:
-         bonus += 1.4
-     elif fid < 15:
-         bonus += 1.3
-     elif fid < 20:
-         bonus += 1.2
- 
-     return base_score + bonus
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -239,7 +199,7 @@ if __name__ == '__main__':
         #               epoch = epoch,
         #               mode = 'test')
         
-        accuracy = train_or_test(model = model, data_loader = val_loader,optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
+        train_or_test(model = model, data_loader = val_loader,optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
 
         #if current_fid < best_fid: best_fid = current_fid, patience=0
         #else patience++, early stopping
@@ -257,18 +217,13 @@ if __name__ == '__main__':
             paths = [gen_data_dir, ref_data_dir]
             try:
                 fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
-                combined_score = compute_combined_score(fid_score, accuracy)
                 print("Dimension {:d} works! fid score: {}".format(192, fid_score))
             except:
                 print("Dimension {:d} fails!".format(192))
-            
+                
             if args.en_wandb:
                 wandb.log({"samples": sample_result,
                             "FID": fid_score})
-                wandb.log({"FID": fid_score,
-                            "val-Accuracy": accuracy,
-                            "combined_score": combined_score,
-                            "epoch": epoch})
         
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
