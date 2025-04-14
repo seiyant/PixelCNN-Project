@@ -33,8 +33,8 @@ def get_label(model, model_input, device):
         loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False)
         class_losses.append(loss_per_sample) #collect each class, size (batch_size,)
     class_losses = torch.stack(class_losses).to(device) #size to (NUM_CLASSES, batch_size)
-    predicted_labels = torch.argmin(class_losses, dim=0) #find class index (0 -> NUM_CLASSES-1) with minimum loss across each sample, size (batch_size,)
-    return predicted_labels
+    class_index = torch.argmin(class_losses, dim=0) #find class index (0 -> NUM_CLASSES-1) with minimum loss across each sample, size (batch_size,)
+    return class_index
 # End of your code
 
 def classifier(model, data_loader, device):
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
     parser.add_argument('-i', '--data_dir', type=str, default='data', help='Location for the dataset')
-    parser.add_argument('-b', '--batch_size', type=int, default=16, help='Batch size for inference')
+    parser.add_argument('-b', '--batch_size', type=int, default=32, help='Batch size for inference')
     parser.add_argument('-m', '--mode', type=str, default='validation', help='Mode for the dataset')
     
     args = parser.parse_args()
