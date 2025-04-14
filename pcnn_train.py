@@ -64,7 +64,7 @@ def get_label(model, model_input):
     batch_size = model_input.size(0)
     class_losses = []
     for i in range(len(my_bidict)):
-        label_tensor = torch.full((batch_size,), i, dtype=torch.long).to(device) #create tensor with candidate for batch
+        label_tensor = torch.full((batch_size,), i, dtype=torch.long, device=device) #create tensor with candidate for batch
         out = model(model_input, class_label=label_tensor) #forward pass with candidate
         loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False) #loss per sample
         class_losses.append(loss_per_sample)
@@ -257,10 +257,11 @@ if __name__ == '__main__':
             paths = [gen_data_dir, ref_data_dir]
             try:
                 fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
+                combined_score = compute_combined_score(fid_score, accuracy)
                 print("Dimension {:d} works! fid score: {}".format(192, fid_score))
             except:
                 print("Dimension {:d} fails!".format(192))
-            combined_score = compute_combined_score(fid_score, accuracy)
+            
             if args.en_wandb:
                 wandb.log({"samples": sample_result,
                             "FID": fid_score})
