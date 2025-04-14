@@ -60,10 +60,6 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         
     deno =  args.batch_size * np.prod(args.obs) * np.log(2.)        
     loss_tracker = mean_tracker()
-
-    if mode != 'training':
-        num_correct = 0
-        num_total = 0
     
     for batch_idx, (model_input, categories) in enumerate(tqdm(data_loader)): #add categories
         model_input = model_input.to(device)
@@ -75,27 +71,45 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         loss = loss_op(model_input, model_output)
         loss_tracker.update(loss.item()/deno)
 
-        if mode != 'training': #in evaluation, compute predicted labels and update accuracy
-            predicted_labels = get_label(model, model_input)
-            num_correct += (predicted_labels == label_tensor).sum().item()
-            num_total += model_input.size(0)
-
         if mode == 'training':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        
-    if mode != 'training':
-        accuracy = num_correct / num_total
-        print(f"{mode.capitalize()} Accuracy: {accuracy:.2%}")
-        if args.en_wandb:
-            wandb.log({mode + "-Accuracy": accuracy})
 
     if args.en_wandb:
         wandb.log({mode + "-Average-BPD" : loss_tracker.get_mean()})
         wandb.log({mode + "-epoch": epoch})
     
-    return accuracy if mode != 'training' else None
+    return loss_tracker.get_mean()
+
+def measure_accuracy(model, val_dataset, device, batch_size=16):
+    """
+    Evaluate classification accuracy on val_dataset using a smaller batch_size
+    to reduce memory usage.  Also uses torch.no_grad() to avoid gradient memory.
+    """
+    model.eval()
+    loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=True,
+        drop_last=False
+    )
+    
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for model_input, categories in tqdm(loader, desc="Classification pass"):
+            model_input = model_input.to(device)
+            label_int = [my_bidict[cat] for cat in categories]
+            label_tensor = torch.tensor(label_int, dtype=torch.long, device=device)
+            predicted_labels = get_label(model, model_input, device)
+            correct += (predicted_labels == label_tensor).sum().item()
+            total += model_input.size(0)
+    
+    return correct / total if total > 0 else 0.0
+
 
 def get_label(model, model_input):
     model.eval()
@@ -239,7 +253,7 @@ if __name__ == '__main__':
         #               epoch = epoch,
         #               mode = 'test')
         
-        last_val_accuracy = train_or_test(model = model, data_loader = val_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
+        train_or_test(model = model, data_loader = val_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
 
         #if current_fid < best_fid: best_fid = current_fid, patience=0
         #else patience++, early stopping
@@ -264,7 +278,7 @@ if __name__ == '__main__':
             if args.en_wandb:
                 wandb.log({"samples": sample_result,
                             "FID": fid_score})
-                
+            last_val_accuracy = measure_accuracy(model, val_dataset=val_loader.dataset, device=device, batch_size=16)
             combined_score = compute_combined_score(fid_score, last_val_accuracy)
             if args.en_wandb:
                 wandb.log({"FID": fid_score,
