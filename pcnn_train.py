@@ -243,6 +243,13 @@ if __name__ == '__main__':
             if args.en_wandb:
                 wandb.log({"samples": sample_result,
                             "FID": fid_score})
+                
+            combined_score = compute_combined_score(fid_score, last_val_accuracy)
+            if args.en_wandb:
+                wandb.log({"FID": fid_score,
+                            "val-Accuracy": last_val_accuracy,
+                            "combined_score": combined_score,
+                            "epoch": epoch})
         
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
@@ -250,10 +257,3 @@ if __name__ == '__main__':
             checkpoint = 'models/{}_{}.pth'.format(model_name, epoch)
             torch.save(model.state_dict(), checkpoint)
             wandb.save(checkpoint)
-        
-        combined_score = compute_combined_score(fid_score, last_val_accuracy)
-        if args.en_wandb:
-            wandb.log({"FID": fid_score,
-                        "val-Accuracy": last_val_accuracy,
-                        "combined_score": combined_score,
-                        "epoch": epoch})
