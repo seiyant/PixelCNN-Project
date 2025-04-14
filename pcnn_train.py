@@ -14,6 +14,44 @@ import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths
 from classification_evaluation import *
 
+def compute_combined_score(fid, accuracy):
+    if fid >= 60:
+        fid_score = 0.0
+    elif fid <= 30:
+        fid_score = 1.0
+    else:
+        fid_score = (60.0 - fid) / 30.0 #based on grading rubric
+
+    if accuracy <= 0.25:
+        acc_score = 0.0
+    elif accuracy >= 0.75:
+        acc_score = 1.0
+    else:
+        acc_score = (accuracy - 0.25) / 0.50 #based on grading rubric
+
+    base_score = fid_score + acc_score #sum scores
+
+    bonus = 0 #add accuracy bonuses
+    if accuracy >= 0.95:
+        bonus += 1.5
+    elif accuracy >= 0.90:
+        bonus += 1.4
+    elif accuracy >= 0.85:
+        bonus += 1.3
+    elif accuracy >= 0.80:
+        bonus += 1.2
+
+    if fid < 5: #add fid bonuses
+        bonus += 1.5
+    elif fid < 10:
+        bonus += 1.4
+    elif fid < 15:
+        bonus += 1.3
+    elif fid < 20:
+        bonus += 1.2
+
+    return base_score + bonus
+
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
     if mode == 'training':
         model.train()
@@ -47,6 +85,8 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     if args.en_wandb:
         wandb.log({mode + "-Average-BPD" : loss_tracker.get_mean()})
         wandb.log({mode + "-epoch": epoch})
+    
+    return accuracy if mode != 'training' else None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -177,7 +217,7 @@ if __name__ == '__main__':
         #               epoch = epoch,
         #               mode = 'test')
         
-        train_or_test(model = model, data_loader = val_loader,optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
+        last_val_accuracy = train_or_test(model = model, data_loader = val_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
 
         #if current_fid < best_fid: best_fid = current_fid, patience=0
         #else patience++, early stopping
@@ -209,3 +249,10 @@ if __name__ == '__main__':
             checkpoint = 'models/{}_{}.pth'.format(model_name, epoch)
             torch.save(model.state_dict(), checkpoint)
             wandb.save(checkpoint)
+        
+        combined_score = compute_combined_score(fid_score, last_val_accuracy)
+        if args.en_wandb:
+            wandb.log({"FID": fid_score,
+                        "val-Accuracy": last_val_accuracy,
+                        "combined_score": combined_score,
+                        "epoch": epoch})
