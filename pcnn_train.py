@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--tag', type=str, default='default', help='Tag for this run')
     
     # sampling
-    parser.add_argument('-c', '--sampling_interval', type=int, default=4, help='sampling interval')
+    parser.add_argument('-c', '--sampling_interval', type=int, default=5, help='sampling interval')
     # data I/O
     parser.add_argument('-i', '--data_dir', type=str, default='data', help='Location for the dataset')
     parser.add_argument('-o', '--save_dir', type=str, default='models', help='Location for parameter checkpoints and samples')
