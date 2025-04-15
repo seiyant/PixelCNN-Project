@@ -208,14 +208,14 @@ if __name__ == '__main__':
         
         # decrease learning rate
         scheduler.step()
-        # train_or_test(model = model,
-        #               data_loader = test_loader,
-        #               optimizer = optimizer,
-        #               loss_op = loss_op,
-        #               device = device,
-        #               args = args,
-        #               epoch = epoch,
-        #               mode = 'test')
+        train_or_test(model = model,
+                      data_loader = test_loader,
+                      optimizer = optimizer,
+                      loss_op = loss_op,
+                      device = device,
+                      args = args,
+                      epoch = epoch,
+                      mode = 'test')
         
         last_val_accuracy = train_or_test(model = model, data_loader = val_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
 
