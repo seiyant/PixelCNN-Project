@@ -32,23 +32,23 @@ def compute_combined_score(fid, accuracy):
     base_score = fid_score + acc_score #sum scores
 
     bonus = 0 #add accuracy bonuses
-    if accuracy >= 0.95:
-        bonus += .1331
-    elif accuracy >= 0.90:
-        bonus += .121
-    elif accuracy >= 0.85:
-        bonus += .11
-    elif accuracy >= 0.80:
-        bonus += .1
+    # if accuracy >= 0.95:
+    #     bonus += .1331
+    # elif accuracy >= 0.90:
+    #     bonus += .121
+    # elif accuracy >= 0.85:
+    #     bonus += .11
+    # elif accuracy >= 0.80:
+    #     bonus += .1
 
-    if fid < 5: #add fid bonuses
-        bonus += .1331
-    elif fid < 10:
-        bonus += .121
-    elif fid < 15:
-        bonus += .11
-    elif fid < 20:
-        bonus += .1
+    # if fid < 5: #add fid bonuses
+    #     bonus += .1331
+    # elif fid < 10:
+    #     bonus += .121
+    # elif fid < 15:
+    #     bonus += .11
+    # elif fid < 20:
+    #     bonus += .1
 
     return base_score + bonus
 
