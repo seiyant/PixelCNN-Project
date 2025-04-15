@@ -57,7 +57,7 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         wandb.log({mode + "-Average-BPD" : loss_tracker.get_mean()})
         wandb.log({mode + "-epoch": epoch})
 
-def get_label(model, model_input):
+def get_label(model, model_input): #mem issues, chatGPT suggested putting accuracy in here
     model.eval()
     batch_size = model_input.size(0)
     class_losses = []
