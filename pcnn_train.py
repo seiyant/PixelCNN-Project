@@ -12,7 +12,45 @@ from tqdm import tqdm
 from pprint import pprint
 import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths
+from classification_evaluation import *
 
+def compute_combined_score(fid, accuracy):
+    if fid >= 60:
+        fid_score = 0.0
+    elif fid <= 30:
+        fid_score = 1.0
+    else:
+        fid_score = (60.0 - fid) / 30.0 #based on grading rubric
+
+    if accuracy <= 0.25:
+        acc_score = 0.0
+    elif accuracy >= 0.75:
+        acc_score = 1.0
+    else:
+        acc_score = (accuracy - 0.25) / 0.50 #based on grading rubric
+
+    base_score = fid_score + acc_score #sum scores
+
+    bonus = 0 #add accuracy bonuses
+    # if accuracy >= 0.95:
+    #     bonus += .1331
+    # elif accuracy >= 0.90:
+    #     bonus += .121
+    # elif accuracy >= 0.85:
+    #     bonus += .11
+    # elif accuracy >= 0.80:
+    #     bonus += .1
+
+    # if fid < 5: #add fid bonuses
+    #     bonus += .1331
+    # elif fid < 10:
+    #     bonus += .121
+    # elif fid < 15:
+    #     bonus += .11
+    # elif fid < 20:
+    #     bonus += .1
+
+    return base_score + bonus
 
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
     if mode == 'training':
@@ -22,10 +60,6 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         
     deno =  args.batch_size * np.prod(args.obs) * np.log(2.)        
     loss_tracker = mean_tracker()
-
-    if mode != 'training':
-        num_correct = 0
-        num_total = 0
     
     for batch_idx, (model_input, categories) in enumerate(tqdm(data_loader)): #add categories
         model_input = model_input.to(device)
@@ -37,18 +71,13 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
         loss = loss_op(model_input, model_output)
         loss_tracker.update(loss.item()/deno)
 
-        if mode != 'training': #in evaluation, compute predicted labels and update accuracy
-            predicted_labels = get_label(model, model_input)
-            num_correct += (predicted_labels == label_tensor).sum().item()
-            num_total += model_input.size(0)
-
         if mode == 'training':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
         
     if mode != 'training':
-        accuracy = num_correct / num_total
+        accuracy = classifier(model, data_loader, device=device)
         print(f"{mode.capitalize()} Accuracy: {accuracy:.2%}")
         if args.en_wandb:
             wandb.log({mode + "-Accuracy": accuracy})
@@ -56,19 +85,8 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     if args.en_wandb:
         wandb.log({mode + "-Average-BPD" : loss_tracker.get_mean()})
         wandb.log({mode + "-epoch": epoch})
-
-def get_label(model, model_input): #mem issues, chatGPT suggested putting accuracy in here
-    model.eval()
-    batch_size = model_input.size(0)
-    class_losses = []
-    for i in range(len(my_bidict)):
-        label_tensor = torch.full((batch_size,), i, dtype=torch.long).to(device) #create tensor with candidate for batch
-        out = model(model_input, class_label=label_tensor) #forward pass with candidate
-        loss_per_sample = discretized_mix_logistic_loss(model_input, out, reduce=False) #loss per sample
-        class_losses.append(loss_per_sample)
-    class_losses = torch.stack(class_losses) #size (NUM_CLASSES, batch_size)
-    predicted_labels = torch.argmin(class_losses, dim=0) #choose the class with smallest loss as prediction per sample
-    return predicted_labels
+    
+    return accuracy if mode != 'training' else None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -199,11 +217,11 @@ if __name__ == '__main__':
         #               epoch = epoch,
         #               mode = 'test')
         
-        train_or_test(model = model, data_loader = val_loader,optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
+        last_val_accuracy = train_or_test(model = model, data_loader = val_loader, optimizer = optimizer, loss_op = loss_op, device = device, args = args, epoch = epoch, mode = 'val')
 
         #if current_fid < best_fid: best_fid = current_fid, patience=0
         #else patience++, early stopping
-        if epoch % args.sampling_interval == 0:
+        if (epoch + 1) == args.max_epochs or epoch % args.sampling_interval == 0: #ensure last measurement
             print('......sampling......')
             for label in my_bidict.keys():
                 label_tensor = torch.full((args.sample_batch_size,), my_bidict[label], dtype=torch.long, device=device) #create current label tensor
@@ -224,6 +242,12 @@ if __name__ == '__main__':
             if args.en_wandb:
                 wandb.log({"samples": sample_result,
                             "FID": fid_score})
+            combined_score = compute_combined_score(fid_score, last_val_accuracy)
+            if args.en_wandb:
+                wandb.log({"FID": fid_score,
+                            "val-Accuracy": last_val_accuracy,
+                            "combined_score": combined_score,
+                            "epoch": epoch})
         
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
