@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     #TODO: Begin of your code
     #Load your model and generate images in the gen_data_dir, feel free to modify the model
-    model = PixelCNN(nr_resnet=9, nr_filters=33, nr_logistic_mix=17, input_channels=3) 
+    model = PixelCNN(nr_resnet=4, nr_filters=64, nr_logistic_mix=13, input_channels=3) 
     #nr_resnet: lower is faster and less expensive
     #nr_filters: determines the capacity of network
     model = model.to(device) #no need for map_location
