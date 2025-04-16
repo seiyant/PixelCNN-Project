@@ -24,7 +24,7 @@ NUM_CLASSES = len(my_bidict)
 def get_label(model, model_input, device):
     # Write your code here, replace the random classifier with your trained model
     # and return the predicted label, which is a tensor of shape (batch_size,)
-    model.eval()
+    #model.eval()
     batch_size = model_input.size(0)
     class_losses = []
     for current_class in range(NUM_CLASSES):
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     #TODO:Begin of your code
     #You should replace the random classifier with your trained model
-    model = PixelCNN(nr_resnet=4, nr_filters=64, nr_logistic_mix=13, input_channels=3)  
+    model = PixelCNN(nr_resnet=1, nr_filters=56, nr_logistic_mix=5, input_channels=3)  
     #End of your code
     
     model = model.to(device)
